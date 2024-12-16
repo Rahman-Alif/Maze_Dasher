@@ -3,6 +3,138 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
+def FindZone(x1, y1, x2, y2):
+    dx = x2 - x1
+    dy = y2 - y1
+    
+    if abs(dx) >= abs(dy):  # Line is more horizontal
+        
+        if dx > 0 and dy >= 0:
+            return 0
+        elif dx < 0 and dy >= 0:
+            return 3
+        elif dx < 0 and dy < 0:
+            return 4
+        elif dx > 0 and dy < 0:
+            return 7
+    else:  # Line is more vertical
+        if dx >= 0 and dy > 0:
+            return 1
+        elif dx < 0 and dy > 0:
+            return 2
+        elif dx <= 0 and dy < 0:
+            return 5
+        elif dx > 0 and dy < 0:
+            return 6
+
+def ConvertMtoZero(x, y, zone):
+    if zone == 0:
+        return x, y
+    elif zone == 1:
+        return y, x
+    elif zone == 2:
+        return y, -x
+    elif zone == 3:
+        return -x, y
+    elif zone == 4:
+        return -x, -y
+    elif zone == 5:
+        return -y, -x
+    elif zone == 6:
+        return -y, x
+    elif zone == 7:
+        return x, -y
+
+def ConvertZeroToM(x, y, zone):
+    if zone == 0:
+        return x, y
+    elif zone == 1:
+        return y, x
+    elif zone == 2:
+        return -y, x
+    elif zone == 3:
+        return -x, y
+    elif zone == 4:
+        return -x, -y
+    elif zone == 5:
+        return -y, -x
+    elif zone == 6:
+        return y, -x
+    elif zone == 7:
+        return x, -y
+
+def MidpointLine(x1_prime, y1_prime, x2_prime, y2_prime, zone):
+    #Zone 0
+    dx_prime = x2_prime - x1_prime
+    dy_prime = y2_prime - y1_prime
+
+    incE = 2 * dy_prime
+    incNE = 2 * (dy_prime - dx_prime)
+
+    d = 2 * dy_prime - dx_prime
+
+    x_prime, y_prime = x1_prime, y1_prime
+
+    # 1st pixel
+    conv_x, conv_y = ConvertZeroToM(x_prime, y_prime, zone)
+    SetPixel(conv_x, conv_y)
+
+    while x_prime < x2_prime:
+        if d <= 0:
+            d = d + incE
+            x_prime = x_prime + 1
+        else:
+            d = d + incNE
+            x_prime = x_prime + 1
+            y_prime = y_prime + 1
+
+        conv_x, conv_y = ConvertZeroToM(x_prime, y_prime, zone)
+        SetPixel(conv_x, conv_y)
+
+def MidpointLineEightway(x1, y1, x2, y2):
+    # Determine the zone
+    zone = FindZone(x1, y1, x2, y2)
+
+    # Convert to Zone 0
+    x1_prime, y1_prime = ConvertMtoZero(x1, y1, zone)
+    x2_prime, y2_prime = ConvertMtoZero(x2, y2, zone)
+
+    MidpointLine(x1_prime, y1_prime, x2_prime, y2_prime, zone)
+
+def CirclePoints(x, y, conv_x, conv_y):
+    SetPixel(x + conv_x, y + conv_y)  # zone 1
+    SetPixel(y + conv_x, x + conv_y)  # zone 0
+    SetPixel(y + conv_x, -x + conv_y)  # zone 7
+    SetPixel(x + conv_x, -y + conv_y)  # zone 6
+    SetPixel(-x + conv_x, -y + conv_y)  # zone 5
+    SetPixel(-y + conv_x, -x + conv_y)  # zone 4
+    SetPixel(-y + conv_x, x + conv_y)  # zone 3
+    SetPixel(-x + conv_x, y + conv_y)  # zone 2
+
+def MidpointCircle(radius, conv_x, conv_y):
+    d = 1 - radius
+    x = 0
+    y = radius
+    CirclePoints(x, y, conv_x, conv_y)
+
+    while x < y:
+        if d < 0:
+            # E pixel
+            d = d + 2 * x + 3
+            x = x + 1
+        else:
+            # SE pixel
+            d = d + 2 * x - 2 * y + 5
+            x = x + 1
+            y = y - 1
+
+        CirclePoints(x, y, conv_x, conv_y)
+
+def SetPixel(x, y):
+    glBegin(GL_POINTS)
+    glVertex2i(x, y)
+    glEnd()
+
 # Window dimensions
 window_width = 750
 window_height = 750
@@ -105,6 +237,11 @@ def draw_player():
     glVertex2f(player_x + player_size, player_y - player_size)
     glVertex2f(player_x - player_size, player_y - player_size)
     glEnd()
+    temp = window_width / 2
+    # MidpointLineEightway((player_x - player_size) * temp, (player_y + player_size) * temp, (player_x + player_size) * temp, (player_y + player_size) * temp)    #Up
+    # MidpointLineEightway((player_x - player_size) * temp, (player_y - player_size) * temp, (player_x + player_size) * temp, (player_y - player_size) * temp)    #Down
+    # MidpointLineEightway((player_x - player_size) * temp, (player_y - player_size) * temp, (player_x - player_size) * temp, (player_y + player_size) * temp)    #Left
+    # MidpointLineEightway((player_x + player_size) * temp, (player_y - player_size) * temp, (player_x + player_size) * temp, (player_y + player_size) * temp)    #Right
 
 
 def check_collision(new_x, new_y):
