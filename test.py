@@ -4,11 +4,11 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 # Window dimensions
-window_width = 500
-window_height = 500
+window_width = 750
+window_height = 750
 
 # Player variables
-player_x, player_y = -0.9, 0.9  # Initial position of the player
+player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
 player_size = 0.05  # Player's size
 
 maze = []  # To store the generated maze
@@ -57,7 +57,10 @@ def generate_maze(rows, cols):
     # Start the DFS from a random position
     start_x, start_y = random.randint(0, rows - 1), random.randint(0, cols - 1)
     dfs(start_x, start_y)
-
+    # MAZE REMEMBER
+    # for cols in range(len(maze)):
+    #     with open('maze_shape.txt', 'a') as file:
+    #         file.write(str(maze[cols])+"\n")
     return maze
 
 def draw_maze():
@@ -146,7 +149,7 @@ def keyboard(key, x, y):
     """Keyboard callback for player movement."""
     global player_x, player_y
 
-    step = 0.2  # Movement step size
+    step = 0.13333333333  # Movement step size
 
     # Calculate new position based on key press
     if key == b'w':  # Up
@@ -181,7 +184,7 @@ def display():
 
 def main():
     global maze
-    rows, cols = 10, 10  # Maze dimensions changed to 10x10
+    rows, cols = 15, 15  # Maze dimensions changed to 10x10
     maze = generate_maze(rows, cols)
 
     glutInit()
