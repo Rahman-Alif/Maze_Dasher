@@ -4,12 +4,12 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 # Window dimensions
-window_width = 500
-window_height = 500
+window_width = 750
+window_height = 750
 
 # Player variables
-player_x, player_y = -0.9333333, 0.933333  # Initial position of the player
-player_size = 0.0375  # Player's size
+player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
+player_size = 0.05  # Player's size
 
 maze = []  # To store the generated maze
 DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
