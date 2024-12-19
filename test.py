@@ -143,11 +143,49 @@ def generate_maze(rows, cols):
     # Start dfs_maze_create from random position
     start_x, start_y = random.randint(0, rows - 1), random.randint(0, cols - 1)
     dfs_maze_create(start_x, start_y)
+
     # MAZE REMEMBER
     # for cols in range(len(maze)):
     #     with open('maze_shape.txt', 'a') as file:
     #         file.write(str(maze[cols])+"\n")
-    return maze
+
+
+    maze_level_1  = [[[True, False, False, True], [True, False, False, False], [True, True, False, False], [True, False, False, True], [True, False, True, False], [True, False, False, False], [True, True, False, False], [True, False, False, True], [True, False, False, False], [True, True, False, False], [True, False, False, True], [True, True, False, False], [True, False, False, True], [True, True, False, False], [True, True, True, True]],
+    [[False, True, False, True], [False, True, False, True], [False, True, False, True], [False, False, True, True], [True, True, False, False], [False, False, True, True], [False, True, False, False], [False, True, False, True], [False, True, False, True], [False, False, True, True], [False, True, False, False], [False, False, True, True], [False, True, False, False], [False, False, True, True], [True, True, False, False]],
+    [[False, True, False, True], [False, True, False, True], [False, False, True, True], [True, False, True, False], [False, True, True, False], [True, False, False, True], [False, True, True, False], [False, True, True, True], [False, False, False, True], [True, True, False, False], [False, True, True, True], [True, False, False, True], [False, False, True, False], [True, True, True, False], [False, True, False, True]],
+    [[False, True, False, True], [False, False, True, True], [True, False, True, False], [True, True, False, False], [True, False, True, True], [False, False, True, False], [True, False, False, False], [True, True, False, False], [False, True, True, True], [False, False, True, True], [True, False, True, False], [False, True, True, False], [True, False, False, True], [True, False, True, False], [False, True, False, False]],
+    [[False, True, False, True], [True, False, False, True], [True, False, True, False], [False, True, True, False], [True, False, False, True], [True, False, True, False], [False, True, False, False], [False, False, True, True], [True, False, False, False], [True, False, True, False], [True, False, True, False], [True, True, False, False], [False, True, False, True], [True, True, False, True], [False, True, False, True]],
+    [[False, True, False, True], [False, True, False, True], [True, False, False, True], [True, False, True, False], [False, True, True, False], [True, True, False, True], [False, True, False, True], [True, True, False, True], [False, False, True, True], [True, False, True, False], [True, True, False, False], [False, True, False, True], [False, False, False, True], [False, False, True, False], [False, True, True, False]],
+    [[False, True, True, True], [False, True, False, True], [False, True, False, True], [True, False, False, True], [True, False, True, False], [False, False, True, False], [False, True, True, False], [False, False, True, True], [True, False, True, False], [True, True, False, False], [False, False, False, True], [False, True, True, False], [False, False, True, True], [True, False, False, False], [True, True, False, False]],
+    [[True, False, False, True], [False, True, True, False], [False, True, False, True], [False, False, True, True], [True, False, True, False], [True, False, True, False], [True, False, True, False], [True, False, True, False], [True, False, True, False], [False, True, True, False], [False, True, False, True], [True, False, False, True], [True, True, False, False], [False, True, True, True], [False, True, False, True]],
+    [[False, False, True, True], [True, True, False, False], [False, True, False, True], [True, False, False, True], [True, False, True, False], [True, False, True, False], [True, False, False, False], [True, False, True, False], [True, True, False, False], [True, True, False, True], [False, False, True, True], [False, True, True, False], [False, False, True, True], [True, True, False, False], [False, True, False, True]],
+    [[True, True, False, True], [False, False, True, True], [False, True, True, False], [False, True, False, True], [True, False, False, True], [True, True, False, False], [False, False, False, True], [True, True, False, False], [False, False, True, True], [False, True, False, False], [True, False, False, True], [True, False, False, False], [True, False, True, False], [False, True, False, False], [False, True, False, True]],
+    [[False, False, False, True], [True, False, False, False], [True, True, True, False], [False, True, False, True], [False, True, False, True], [False, True, False, True], [False, True, True, True], [False, True, False, True], [True, False, False, True], [False, False, True, False], [False, True, True, False], [False, False, True, True], [True, True, False, False], [False, False, True, True], [False, True, False, False]],
+    [[False, True, False, True], [False, False, True, True], [True, False, True, False], [False, True, True, False], [False, True, False, True], [False, False, True, True], [True, False, True, False], [False, True, False, False], [False, True, False, True], [True, False, False, True], [True, False, True, False], [True, True, False, False], [False, False, True, True], [True, True, False, False], [False, True, False, True]],
+    [[False, False, True, True], [True, False, True, False], [True, False, True, False], [True, True, False, False], [False, False, True, True], [True, False, True, False], [True, True, False, False], [False, True, True, True], [False, False, True, True], [False, True, True, False], [True, True, False, True], [False, False, True, True], [True, True, False, False], [False, False, True, True], [False, True, True, False]],
+    [[True, True, False, True], [True, False, False, True], [True, True, False, False], [False, False, True, True], [True, True, False, False], [True, False, False, True], [False, True, True, False], [True, False, False, True], [True, False, True, False], [True, True, False, False], [False, False, False, True], [True, True, False, False], [False, True, False, True], [True, False, True, True], [True, True, False, False]],
+    [[False, False, True, True], [False, True, True, False], [False, False, True, True], [True, False, True, False], [False, True, True, False], [False, False, True, True], [True, False, True, False], [False, True, True, False], [True, True, True, True], [False, False, True, True], [False, True, True, False], [False, False, True, True], [False, False, True, False], [True, False, True, False], [False, True, True, False]]]
+    
+
+    maze_level_2 = [[[True, False, False, True], [True, False, True, False], [True, False, False, False], [True, False, True, False], [True, True, False, False], [True, True, True, True], [True, False, False, True], [True, False, False, False], [True, True, False, False], [True, False, True, True], [True, False, False, False], [True, False, False, False], [True, False, True, False], [True, False, True, False], [True, True, False, False]],
+    [[False, False, True, True], [True, True, False, False], [False, True, False, True], [True, False, False, True], [False, True, True, False], [True, False, False, True], [False, False, False, False], [False, True, True, False], [False, False, True, True], [True, True, False, False], [False, True, True, True], [False, False, True, True], [True, True, False, False], [True, True, False, True], [False, True, False, True]],
+    [[True, False, True, True], [False, False, True, False], [False, True, False, False], [False, False, True, True], [True, False, False, False], [False, True, True, False], [False, True, False, True], [True, False, False, True], [True, True, False, False], [False, False, True, True], [True, False, False, False], [True, False, True, False], [False, True, True, False], [False, False, False, True], [False, True, True, False]],
+    [[True, False, False, True], [True, False, True, False], [False, True, True, False], [True, False, True, True], [False, True, False, False], [True, False, True, True], [False, True, False, False], [False, True, True, True], [False, False, True, True], [True, False, False, False], [False, False, False, False], [True, False, True, False], [True, True, False, False], [False, True, False, True], [True, True, False, True]],
+    [[False, False, True, True], [True, True, False, False], [True, False, False, True], [True, True, False, False], [False, False, False, True], [True, False, False, False], [False, False, True, False], [True, True, True, False], [True, False, False, True], [False, True, True, False], [False, False, False, True], [True, False, True, False], [False, True, True, False], [False, True, False, True], [False, True, False, True]],
+    [[True, True, False, True], [False, False, True, True], [False, True, True, False], [False, True, False, True], [False, True, False, True], [False, False, True, True], [True, False, False, False], [True, True, False, False], [False, True, False, True], [True, False, True, True], [False, True, True, False], [True, False, False, True], [True, True, False, False], [False, True, False, True], [False, True, False, True]],
+    [[False, False, False, True], [True, False, False, False], [True, True, True, False], [False, True, False, True], [False, False, True, True], [True, False, True, False], [False, True, True, False], [False, True, False, True], [False, False, True, True], [True, False, True, False], [True, True, False, False], [False, True, False, True], [False, True, False, True], [False, False, True, True], [False, True, False, False]],
+    [[False, True, False, True], [False, True, False, True], [True, False, False, True], [False, True, True, False], [True, False, True, True], [True, False, True, False], [True, True, False, False], [False, False, True, True], [True, False, False, False], [True, True, False, False], [False, True, False, True], [False, True, False, True], [False, False, False, True], [True, True, True, False], [False, True, False, True]],
+    [[False, True, False, True], [False, True, False, True], [False, False, True, True], [True, False, True, False], [True, True, False, False], [True, False, False, True], [False, True, True, False], [True, True, False, True], [False, False, False, True], [False, True, True, False], [False, True, False, True], [False, True, False, True], [False, False, True, True], [True, False, True, False], [False, True, True, False]],
+    [[False, False, True, True], [False, False, False, False], [True, False, True, False], [True, True, False, False], [False, False, True, True], [False, True, True, False], [True, False, False, True], [False, False, True, False], [False, True, True, False], [True, False, False, True], [False, True, False, False], [False, True, False, True], [True, False, False, True], [True, False, True, False], [True, True, False, False]],
+    [[True, False, False, True], [False, True, False, False], [True, False, False, True], [False, False, True, False], [True, False, False, False], [True, True, False, False], [False, False, True, True], [True, True, False, False], [True, False, False, True], [False, True, True, False], [False, True, True, True], [False, True, False, True], [False, True, False, True], [True, False, False, True], [False, True, True, False]],
+    [[False, True, False, True], [False, True, False, True], [False, True, False, True], [True, False, False, True], [False, True, True, False], [False, True, False, True], [True, False, True, True], [False, True, True, False], [False, True, False, True], [True, False, False, True], [True, False, False, False], [False, True, True, False], [False, True, False, True], [False, False, True, True], [True, True, False, False]],
+    [[False, True, False, True], [False, True, False, True], [False, True, False, True], [False, False, True, True], [True, True, False, False], [False, False, True, True], [True, False, True, False], [True, False, True, False], [False, True, True, False], [False, True, False, True], [False, False, True, True], [True, False, True, False], [False, False, True, False], [True, True, True, False], [False, True, False, True]],
+    [[False, True, False, True], [False, True, True, True], [False, False, True, True], [True, True, False, False], [False, True, False, True], [True, True, True, True], [True, False, False, True], [True, True, False, False], [True, False, False, True], [False, True, True, False], [True, False, False, True], [True, False, True, False], [True, True, False, False], [True, False, False, True], [False, True, False, False]],
+    [[False, False, True, True], [True, False, True, False], [True, False, True, False], [False, True, True, False], [False, False, True, True], [True, False, True, False], [False, True, True, False], [False, False, True, True], [False, False, True, False], [True, False, True, False], [False, True, True, False], [True, False, True, True], [False, False, True, False], [False, True, True, False], [False, True, True, True]]]
+
+
+    # return maze
+    return maze_level_1
 
 def draw_maze():
     rows = len(maze)
@@ -209,8 +247,7 @@ def check_collision(new_x, new_y):
 
 
 def keyboard(key, x, y):
-    global player_x, player_y
-    step = 2.0 / max(len(maze), len(maze[0]))
+    global player_x, player_y, step
 
     if key == b'a':  # Move left
         new_x, new_y = player_x - step, player_y
@@ -242,17 +279,18 @@ def display():
 window_width = 750
 window_height = 750
 
-# Player variables
-player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
-player_size = 0.05  # Player's size
-displacement= 0.0666666666
-
 maze = []  # To store the generated maze
 DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
 
-
 rows, cols = 15, 15  # Maze dimensions
 maze = generate_maze(rows, cols)
+step = 2.0 / max(len(maze), len(maze[0]))
+
+# Player variables
+player_x, player_y = -0.93333333, 0.93333333 # Initial position of the player
+player_size = 0.05  # Player's size
+displacement= 0.0666666666
+
 
 glutInit()
 glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
