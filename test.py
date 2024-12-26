@@ -3,197 +3,313 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
-def FindZone(x1, y1, x2, y2):
+
+def denormalize(x, old_min, old_max, new_min, new_max):
+    # Map range [-1, 1] to [0, 750]
+    return ((x - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
+
+
+def draw_midpoint_line(x1, y1, x2, y2):
+    # Map normalized to window coords
+    x1 = int(denormalize(x1, -1, 1, -750, window_width))
+    y1 = int(denormalize(y1, -1, 1, -750, window_height))
+    x2 = int(denormalize(x2, -1, 1, -750, window_width))
+    y2 = int(denormalize(y2, -1, 1, -750, window_height))
+
     dx = x2 - x1
     dy = y2 - y1
-    
-    if abs(dx) >= abs(dy):  # Line is more horizontal
-        
-        if dx > 0 and dy >= 0:
-            return 0
-        elif dx < 0 and dy >= 0:
-            return 3
-        elif dx < 0 and dy < 0:
-            return 4
-        elif dx > 0 and dy < 0:
-            return 7
-    else:  # Line is more vertical
-        if dx >= 0 and dy > 0:
-            return 1
-        elif dx < 0 and dy > 0:
-            return 2
-        elif dx <= 0 and dy < 0:
-            return 5
-        elif dx > 0 and dy < 0:
-            return 6
 
-def ConvertMtoZero(x, y, zone):
-    if zone == 0:
-        return x, y
-    elif zone == 1:
-        return y, x
-    elif zone == 2:
-        return y, -x
-    elif zone == 3:
-        return -x, y
-    elif zone == 4:
-        return -x, -y
-    elif zone == 5:
-        return -y, -x
-    elif zone == 6:
-        return -y, x
-    elif zone == 7:
-        return x, -y
+    # Determine the direction of the line
+    y_larger_than_x = abs(dy) > abs(dx)
+    if y_larger_than_x:
+        x1, y1 = y1, x1
+        x2, y2 = y2, x2
 
-def ConvertZeroToM(x, y, zone):
-    if zone == 0:
-        return x, y
-    elif zone == 1:
-        return y, x
-    elif zone == 2:
-        return -y, x
-    elif zone == 3:
-        return -x, y
-    elif zone == 4:
-        return -x, -y
-    elif zone == 5:
-        return -y, -x
-    elif zone == 6:
-        return y, -x
-    elif zone == 7:
-        return x, -y
+    if x1 > x2:
+        x1, x2 = x2, x1
+        y1, y2 = y2, y1
 
-def MidpointLine(x1_prime, y1_prime, x2_prime, y2_prime, zone):
-    #Zone 0
-    dx_prime = x2_prime - x1_prime
-    dy_prime = y2_prime - y1_prime
+    dx = x2 - x1
+    dy = y2 - y1
+    d = 2 * abs(dy) - abs(dx)
+    if y1 < y2:
+        y_step = 1
+    else:
+        y_step = -1
 
-    incE = 2 * dy_prime
-    incNE = 2 * (dy_prime - dx_prime)
-
-    d = 2 * dy_prime - dx_prime
-
-    x_prime, y_prime = x1_prime, y1_prime
-
-    # 1st pixel
-    conv_x, conv_y = ConvertZeroToM(x_prime, y_prime, zone)
-    SetPixel(conv_x, conv_y)
-
-    while x_prime < x2_prime:
-        if d <= 0:
-            d = d + incE
-            x_prime = x_prime + 1
-        else:
-            d = d + incNE
-            x_prime = x_prime + 1
-            y_prime = y_prime + 1
-
-        conv_x, conv_y = ConvertZeroToM(x_prime, y_prime, zone)
-        SetPixel(conv_x, conv_y)
-
-def MidpointLineEightway(x1, y1, x2, y2):
-    # Determine the zone
-    zone = FindZone(x1, y1, x2, y2)
-
-    # Convert to Zone 0
-    x1_prime, y1_prime = ConvertMtoZero(x1, y1, zone)
-    x2_prime, y2_prime = ConvertMtoZero(x2, y2, zone)
-
-    MidpointLine(x1_prime, y1_prime, x2_prime, y2_prime, zone)
-
-def CirclePoints(x, y, conv_x, conv_y):
-    SetPixel(x + conv_x, y + conv_y)  # zone 1
-    SetPixel(y + conv_x, x + conv_y)  # zone 0
-    SetPixel(y + conv_x, -x + conv_y)  # zone 7
-    SetPixel(x + conv_x, -y + conv_y)  # zone 6
-    SetPixel(-x + conv_x, -y + conv_y)  # zone 5
-    SetPixel(-y + conv_x, -x + conv_y)  # zone 4
-    SetPixel(-y + conv_x, x + conv_y)  # zone 3
-    SetPixel(-x + conv_x, y + conv_y)  # zone 2
-
-def MidpointCircle(radius, conv_x, conv_y):
-    d = 1 - radius
-    x = 0
-    y = radius
-    CirclePoints(x, y, conv_x, conv_y)
-
-    while x < y:
-        if d < 0:
-            # E pixel
-            d = d + 2 * x + 3
-            x = x + 1
-        else:
-            # SE pixel
-            d = d + 2 * x - 2 * y + 5
-            x = x + 1
-            y = y - 1
-
-        CirclePoints(x, y, conv_x, conv_y)
-
-def SetPixel(x, y):
+    temp_y = y1
     glBegin(GL_POINTS)
-    glVertex2i(x, y)
+    for x in range(x1, x2 + 1):
+        if y_larger_than_x:
+            glVertex2f(temp_y / window_width, x / window_height)
+        else:
+            glVertex2f(x / window_width, temp_y / window_height)
+        if d > 0:
+            temp_y += y_step
+            d -= 2 * abs(dx)
+        d += 2 * abs(dy)
     glEnd()
 
-# Window dimensions
-window_width = 750
-window_height = 750
 
-# Player variables
-player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
-player_size = 0.05  # Player's size
-displacement= 0.0666666666
+def draw_midpoint_circle(cx, cy, radius):
+    # Map normalized to window coords
+    cx = int(denormalize(cx, -1, 1, 0, window_width))
+    cy = int(denormalize(cy, -1, 1, 0, window_height))
+    radius = int(radius * (window_width / 2))  # Scale radius to window size
 
-maze = []  # To store the generated maze
-DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+    x = 0
+    y = radius
+    d = 1 - radius
+
+    glBegin(GL_POINTS)
+    while x <= y:
+        # Plot the 8 symmetric points
+        glVertex2f((cx + x) / window_width, (cy + y) / window_height)
+        glVertex2f((cx - x) / window_width, (cy + y) / window_height)
+        glVertex2f((cx + x) / window_width, (cy - y) / window_height)
+        glVertex2f((cx - x) / window_width, (cy - y) / window_height)
+        glVertex2f((cx + y) / window_width, (cy + x) / window_height)
+        glVertex2f((cx - y) / window_width, (cy + x) / window_height)
+        glVertex2f((cx + y) / window_width, (cy - x) / window_height)
+        glVertex2f((cx - y) / window_width, (cy - x) / window_height)
+
+        if d < 0:
+            d += 2 * x + 3
+        else:
+            d += 2 * (x - y) + 5
+            y -= 1
+        x += 1
+    glEnd()
+
+
+def draw_player():
+    x1 = player_x - player_size
+    x2 = player_x + player_size
+    y1 = player_y - player_size
+    y2 = player_y + player_size
+
+    # Draw the four edges
+    glColor3f(1.0, 0.0, 0.0)  # red player
+
+    draw_midpoint_line(x1, y1, x2, y1)  # Bottom edge
+    draw_midpoint_line(x2, y1, x2, y2)  # Right edge
+    draw_midpoint_line(x2, y2, x1, y2)  # Top edge
+    draw_midpoint_line(x1, y2, x1, y1)  # Left edge
+
+    glColor3f(1.0, 1.0, 1.0)
 
 
 def generate_maze(rows, cols):
-    # Initialize the maze with walls (True for wall, False for open space)
-    maze = [[[True, True, True, True] for _ in range(cols)] for _ in range(rows)]
+    # Initialize the maze with walls (True for wall, False for no wall)
+    maze = []
+    for temp1 in range(rows):
+        row = []
+        for temp2 in range(cols):
+            # Starts with walls on all four sides: [Top, Right, Bottom, Left]
+            cell = [True, True, True, True]
+            row.append(cell)
+        maze.append(row)
 
-    # Track the visited cells
-    visited = [[False for _ in range(cols)] for _ in range(rows)]
+    visited = []
+    for _ in range(rows):
+        # All cells marked as not visited
+        row = [False] * cols
+        visited.append(row)
 
     def is_valid(x, y):
-        #Check if the cell (x, y) is within the bounds of the maze
+        # Check if the cell (x, y) is within the bounds of the maze
         return 0 <= x < rows and 0 <= y < cols
 
-    def dfs(x, y):
+    def dfs_maze_create(x, y):
         visited[x][y] = True
-        # Randomize the directions to ensure randomness in maze generation
+        # Randomize to ensure randomness in maze generation
         directions = random.sample(DIRECTIONS, len(DIRECTIONS))
 
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if is_valid(nx, ny) and not visited[nx][ny]:
-
+        for x_direct, y_direct in directions:
+            neigh_x, neigh_y = x + x_direct, y + y_direct
+            if is_valid(neigh_x, neigh_y) and not visited[neigh_x][neigh_y]:
                 # Remove wall between current cell and neighbor
-                if dx == -1:  # Move up
-                    maze[x][y][0] = False  # Remove top wall of current
-                    maze[nx][ny][2] = False  # Remove bottom wall of neighbor
-                elif dx == 1:  # Move down
-                    maze[x][y][2] = False  # Remove bottom wall of current
-                    maze[nx][ny][0] = False  # Remove top wall of neighbor
-                elif dy == -1:  # Move left
-                    maze[x][y][3] = False  # Remove left wall of current
-                    maze[nx][ny][1] = False  # Remove right wall of neighbor
-                elif dy == 1:  # Move right
-                    maze[x][y][1] = False  # Remove right wall of current
-                    maze[nx][ny][3] = False  # Remove left wall of neighbor
-                dfs(nx, ny)
 
-    # Start DFS from random position
+                if x_direct == -1:  # Move up
+                    maze[x][y][0] = False  # Remove top wall of current
+                    maze[neigh_x][neigh_y][2] = False  # Remove bottom wall of neighbor
+                elif x_direct == 1:  # Move down
+                    maze[x][y][2] = False  # Remove bottom wall of current
+                    maze[neigh_x][neigh_y][0] = False  # Remove top wall of neighbor
+                elif y_direct == -1:  # Move left
+                    maze[x][y][3] = False  # Remove left wall of current
+                    maze[neigh_x][neigh_y][1] = False  # Remove right wall of neighbor
+                elif y_direct == 1:  # Move right
+                    maze[x][y][1] = False  # Remove right wall of current
+                    maze[neigh_x][neigh_y][3] = False  # Remove left wall of neighbor
+                dfs_maze_create(neigh_x, neigh_y)
+
+    # Start dfs_maze_create from random position
     start_x, start_y = random.randint(0, rows - 1), random.randint(0, cols - 1)
-    dfs(start_x, start_y)
+    dfs_maze_create(start_x, start_y)
+
     # MAZE REMEMBER
     # for cols in range(len(maze)):
     #     with open('maze_shape.txt', 'a') as file:
     #         file.write(str(maze[cols])+"\n")
-    return maze
+
+    maze_level_1 = [[[True, False, False, True], [True, False, False, False], [True, True, False, False],
+                     [True, False, False, True], [True, False, True, False], [True, False, False, False],
+                     [True, True, False, False], [True, False, False, True], [True, False, False, False],
+                     [True, True, False, False], [True, False, False, True], [True, True, False, False],
+                     [True, False, False, True], [True, True, False, False], [True, True, True, True]],
+                    [[False, True, False, True], [False, True, False, True], [False, True, False, True],
+                     [False, False, True, True], [True, True, False, False], [False, False, True, True],
+                     [False, True, False, False], [False, True, False, True], [False, True, False, True],
+                     [False, False, True, True], [False, True, False, False], [False, False, True, True],
+                     [False, True, False, False], [False, False, True, True], [True, True, False, False]],
+                    [[False, True, False, True], [False, True, False, True], [False, False, True, True],
+                     [True, False, True, False], [False, True, True, False], [True, False, False, True],
+                     [False, True, True, False], [False, True, True, True], [False, False, False, True],
+                     [True, True, False, False], [False, True, True, True], [True, False, False, True],
+                     [False, False, True, False], [True, True, True, False], [False, True, False, True]],
+                    [[False, True, False, True], [False, False, True, True], [True, False, True, False],
+                     [True, True, False, False], [True, False, True, True], [False, False, True, False],
+                     [True, False, False, False], [True, True, False, False], [False, True, True, True],
+                     [False, False, True, True], [True, False, True, False], [False, True, True, False],
+                     [True, False, False, True], [True, False, True, False], [False, True, False, False]],
+                    [[False, True, False, True], [True, False, False, True], [True, False, True, False],
+                     [False, True, True, False], [True, False, False, True], [True, False, True, False],
+                     [False, True, False, False], [False, False, True, True], [True, False, False, False],
+                     [True, False, True, False], [True, False, True, False], [True, True, False, False],
+                     [False, True, False, True], [True, True, False, True], [False, True, False, True]],
+                    [[False, True, False, True], [False, True, False, True], [True, False, False, True],
+                     [True, False, True, False], [False, True, True, False], [True, True, False, True],
+                     [False, True, False, True], [True, True, False, True], [False, False, True, True],
+                     [True, False, True, False], [True, True, False, False], [False, True, False, True],
+                     [False, False, False, True], [False, False, True, False], [False, True, True, False]],
+                    [[False, True, True, True], [False, True, False, True], [False, True, False, True],
+                     [True, False, False, True], [True, False, True, False], [False, False, True, False],
+                     [False, True, True, False], [False, False, True, True], [True, False, True, False],
+                     [True, True, False, False], [False, False, False, True], [False, True, True, False],
+                     [False, False, True, True], [True, False, False, False], [True, True, False, False]],
+                    [[True, False, False, True], [False, True, True, False], [False, True, False, True],
+                     [False, False, True, True], [True, False, True, False], [True, False, True, False],
+                     [True, False, True, False], [True, False, True, False], [True, False, True, False],
+                     [False, True, True, False], [False, True, False, True], [True, False, False, True],
+                     [True, True, False, False], [False, True, True, True], [False, True, False, True]],
+                    [[False, False, True, True], [True, True, False, False], [False, True, False, True],
+                     [True, False, False, True], [True, False, True, False], [True, False, True, False],
+                     [True, False, False, False], [True, False, True, False], [True, True, False, False],
+                     [True, True, False, True], [False, False, True, True], [False, True, True, False],
+                     [False, False, True, True], [True, True, False, False], [False, True, False, True]],
+                    [[True, True, False, True], [False, False, True, True], [False, True, True, False],
+                     [False, True, False, True], [True, False, False, True], [True, True, False, False],
+                     [False, False, False, True], [True, True, False, False], [False, False, True, True],
+                     [False, True, False, False], [True, False, False, True], [True, False, False, False],
+                     [True, False, True, False], [False, True, False, False], [False, True, False, True]],
+                    [[False, False, False, True], [True, False, False, False], [True, True, True, False],
+                     [False, True, False, True], [False, True, False, True], [False, True, False, True],
+                     [False, True, True, True], [False, True, False, True], [True, False, False, True],
+                     [False, False, True, False], [False, True, True, False], [False, False, True, True],
+                     [True, True, False, False], [False, False, True, True], [False, True, False, False]],
+                    [[False, True, False, True], [False, False, True, True], [True, False, True, False],
+                     [False, True, True, False], [False, True, False, True], [False, False, True, True],
+                     [True, False, True, False], [False, True, False, False], [False, True, False, True],
+                     [True, False, False, True], [True, False, True, False], [True, True, False, False],
+                     [False, False, True, True], [True, True, False, False], [False, True, False, True]],
+                    [[False, False, True, True], [True, False, True, False], [True, False, True, False],
+                     [True, True, False, False], [False, False, True, True], [True, False, True, False],
+                     [True, True, False, False], [False, True, True, True], [False, False, True, True],
+                     [False, True, True, False], [True, True, False, True], [False, False, True, True],
+                     [True, True, False, False], [False, False, True, True], [False, True, True, False]],
+                    [[True, True, False, True], [True, False, False, True], [True, True, False, False],
+                     [False, False, True, True], [True, True, False, False], [True, False, False, True],
+                     [False, True, True, False], [True, False, False, True], [True, False, True, False],
+                     [True, True, False, False], [False, False, False, True], [True, True, False, False],
+                     [False, True, False, True], [True, False, True, True], [True, True, False, False]],
+                    [[False, False, True, True], [False, True, True, False], [False, False, True, True],
+                     [True, False, True, False], [False, True, True, False], [False, False, True, True],
+                     [True, False, True, False], [False, True, True, False], [True, True, True, True],
+                     [False, False, True, True], [False, True, True, False], [False, False, True, True],
+                     [False, False, True, False], [True, False, True, False], [False, True, True, False]]]
+
+    maze_level_2 = [[[True, False, False, True], [True, False, True, False], [True, False, False, False],
+                     [True, False, True, False], [True, True, False, False], [True, True, True, True],
+                     [True, False, False, True], [True, False, False, False], [True, True, False, False],
+                     [True, False, True, True], [True, False, False, False], [True, False, False, False],
+                     [True, False, True, False], [True, False, True, False], [True, True, False, False]],
+                    [[False, False, True, True], [True, True, False, False], [False, True, False, True],
+                     [True, False, False, True], [False, True, True, False], [True, False, False, True],
+                     [False, False, False, False], [False, True, True, False], [False, False, True, True],
+                     [True, True, False, False], [False, True, True, True], [False, False, True, True],
+                     [True, True, False, False], [True, True, False, True], [False, True, False, True]],
+                    [[True, False, True, True], [False, False, True, False], [False, True, False, False],
+                     [False, False, True, True], [True, False, False, False], [False, True, True, False],
+                     [False, True, False, True], [True, False, False, True], [True, True, False, False],
+                     [False, False, True, True], [True, False, False, False], [True, False, True, False],
+                     [False, True, True, False], [False, False, False, True], [False, True, True, False]],
+                    [[True, False, False, True], [True, False, True, False], [False, True, True, False],
+                     [True, False, True, True], [False, True, False, False], [True, False, True, True],
+                     [False, True, False, False], [False, True, True, True], [False, False, True, True],
+                     [True, False, False, False], [False, False, False, False], [True, False, True, False],
+                     [True, True, False, False], [False, True, False, True], [True, True, False, True]],
+                    [[False, False, True, True], [True, True, False, False], [True, False, False, True],
+                     [True, True, False, False], [False, False, False, True], [True, False, False, False],
+                     [False, False, True, False], [True, True, True, False], [True, False, False, True],
+                     [False, True, True, False], [False, False, False, True], [True, False, True, False],
+                     [False, True, True, False], [False, True, False, True], [False, True, False, True]],
+                    [[True, True, False, True], [False, False, True, True], [False, True, True, False],
+                     [False, True, False, True], [False, True, False, True], [False, False, True, True],
+                     [True, False, False, False], [True, True, False, False], [False, True, False, True],
+                     [True, False, True, True], [False, True, True, False], [True, False, False, True],
+                     [True, True, False, False], [False, True, False, True], [False, True, False, True]],
+                    [[False, False, False, True], [True, False, False, False], [True, True, True, False],
+                     [False, True, False, True], [False, False, True, True], [True, False, True, False],
+                     [False, True, True, False], [False, True, False, True], [False, False, True, True],
+                     [True, False, True, False], [True, True, False, False], [False, True, False, True],
+                     [False, True, False, True], [False, False, True, True], [False, True, False, False]],
+                    [[False, True, False, True], [False, True, False, True], [True, False, False, True],
+                     [False, True, True, False], [True, False, True, True], [True, False, True, False],
+                     [True, True, False, False], [False, False, True, True], [True, False, False, False],
+                     [True, True, False, False], [False, True, False, True], [False, True, False, True],
+                     [False, False, False, True], [True, True, True, False], [False, True, False, True]],
+                    [[False, True, False, True], [False, True, False, True], [False, False, True, True],
+                     [True, False, True, False], [True, True, False, False], [True, False, False, True],
+                     [False, True, True, False], [True, True, False, True], [False, False, False, True],
+                     [False, True, True, False], [False, True, False, True], [False, True, False, True],
+                     [False, False, True, True], [True, False, True, False], [False, True, True, False]],
+                    [[False, False, True, True], [False, False, False, False], [True, False, True, False],
+                     [True, True, False, False], [False, False, True, True], [False, True, True, False],
+                     [True, False, False, True], [False, False, True, False], [False, True, True, False],
+                     [True, False, False, True], [False, True, False, False], [False, True, False, True],
+                     [True, False, False, True], [True, False, True, False], [True, True, False, False]],
+                    [[True, False, False, True], [False, True, False, False], [True, False, False, True],
+                     [False, False, True, False], [True, False, False, False], [True, True, False, False],
+                     [False, False, True, True], [True, True, False, False], [True, False, False, True],
+                     [False, True, True, False], [False, True, True, True], [False, True, False, True],
+                     [False, True, False, True], [True, False, False, True], [False, True, True, False]],
+                    [[False, True, False, True], [False, True, False, True], [False, True, False, True],
+                     [True, False, False, True], [False, True, True, False], [False, True, False, True],
+                     [True, False, True, True], [False, True, True, False], [False, True, False, True],
+                     [True, False, False, True], [True, False, False, False], [False, True, True, False],
+                     [False, True, False, True], [False, False, True, True], [True, True, False, False]],
+                    [[False, True, False, True], [False, True, False, True], [False, True, False, True],
+                     [False, False, True, True], [True, True, False, False], [False, False, True, True],
+                     [True, False, True, False], [True, False, True, False], [False, True, True, False],
+                     [False, True, False, True], [False, False, True, True], [True, False, True, False],
+                     [False, False, True, False], [True, True, True, False], [False, True, False, True]],
+                    [[False, True, False, True], [False, True, True, True], [False, False, True, True],
+                     [True, True, False, False], [False, True, False, True], [True, True, True, True],
+                     [True, False, False, True], [True, True, False, False], [True, False, False, True],
+                     [False, True, True, False], [True, False, False, True], [True, False, True, False],
+                     [True, True, False, False], [True, False, False, True], [False, True, False, False]],
+                    [[False, False, True, True], [True, False, True, False], [True, False, True, False],
+                     [False, True, True, False], [False, False, True, True], [True, False, True, False],
+                     [False, True, True, False], [False, False, True, True], [False, False, True, False],
+                     [True, False, True, False], [False, True, True, False], [True, False, True, True],
+                     [False, False, True, False], [False, True, True, False], [False, True, True, True]]]
+
+    # return maze
+    return maze_level_1
+
 
 def draw_maze():
-    #Draw the maze using OpenGL line segments
     rows = len(maze)
     cols = len(maze[0])
     cell_size = 2.0 / max(rows, cols)  # Normalize to OpenGL coordinates
@@ -202,53 +318,25 @@ def draw_maze():
 
     for row in range(rows):
         for col in range(cols):
-            x =  col * cell_size -1
+            x = col * cell_size - 1
             y = 1 - row * cell_size
 
             # Draw walls if they exist
             if maze[row][col][0]:  # Top wall
-                glBegin(GL_LINES)
-                glVertex2f(x, y)
-                glVertex2f(x + cell_size, y)
-                glEnd()
+                draw_midpoint_line(x, y, x + cell_size, y)
             if maze[row][col][1]:  # Right wall
-                glBegin(GL_LINES)
-                glVertex2f(x + cell_size, y)
-                glVertex2f(x + cell_size, y - cell_size)
-                glEnd()
+                draw_midpoint_line(x + cell_size, y, x + cell_size, y - cell_size)
             if maze[row][col][2]:  # Bottom wall
-                glBegin(GL_LINES)
-                glVertex2f(x, y - cell_size)
-                glVertex2f(x + cell_size, y - cell_size)
-                glEnd()
+                draw_midpoint_line(x, y - cell_size, x + cell_size, y - cell_size)
             if maze[row][col][3]:  # Left wall
-                glBegin(GL_LINES)
-                glVertex2f(x, y)
-                glVertex2f(x, y - cell_size)
-                glEnd()
-
-
-def draw_player():
-    #Draw the player as a red square
-    glColor3f(1.0, 0.0, 0.0)  # Red player
-    glBegin(GL_QUADS)
-    glVertex2f(player_x - player_size, player_y + player_size)
-    glVertex2f(player_x + player_size, player_y + player_size)
-    glVertex2f(player_x + player_size, player_y - player_size)
-    glVertex2f(player_x - player_size, player_y - player_size)
-    glEnd()
-    temp = window_width / 2
-    # MidpointLineEightway((player_x - player_size) * temp, (player_y + player_size) * temp, (player_x + player_size) * temp, (player_y + player_size) * temp)    #Up
-    # MidpointLineEightway((player_x - player_size) * temp, (player_y - player_size) * temp, (player_x + player_size) * temp, (player_y - player_size) * temp)    #Down
-    # MidpointLineEightway((player_x - player_size) * temp, (player_y - player_size) * temp, (player_x - player_size) * temp, (player_y + player_size) * temp)    #Left
-    # MidpointLineEightway((player_x + player_size) * temp, (player_y - player_size) * temp, (player_x + player_size) * temp, (player_y + player_size) * temp)    #Right
+                draw_midpoint_line(x, y, x, y - cell_size)
 
 
 def check_collision(new_x, new_y):
-    #Check if the player's new position collides with maze walls
+    # Check if the player's new position collides with maze walls
     rows, cols = len(maze), len(maze[0])
     cell_size = 2.0 / max(rows, cols)
-    
+
     # Calculate Player's current cell
     row = int((1 - new_y) // cell_size)
     col = int((new_x + 1) // cell_size)
@@ -257,33 +345,34 @@ def check_collision(new_x, new_y):
         return player_x, player_y
 
     # Check for walls
-    if new_x < player_x and not maze[row][col+1][3]:  # Left
+    if new_x < player_x and not maze[row][col + 1][3]:  # Left
         while col >= 0 and not maze[row][col][1]:
             col -= 1
-        return displacement -1 + (col + 1) * cell_size, player_y
+        return displacement - 1 + (col + 1) * cell_size, player_y
 
-    if new_x > player_x and not maze[row][col-1][1]:  # Right
+    if new_x > player_x and not maze[row][col - 1][1]:  # Right
         while col < cols and not maze[row][col][3]:
             col += 1
-        return -displacement -1 + col * cell_size, player_y
+        return -displacement - 1 + col * cell_size, player_y
 
-    if new_y > player_y and not maze[row+1][col][0]:  # Up
+    if new_y > player_y and not maze[row + 1][col][0]:  # Up
         while row >= 0 and not maze[row][col][2]:
             row -= 1
         return player_x, - displacement + 1 - (row + 1) * cell_size
 
-    if new_y < player_y and not maze[row-1][col][2]:  # Down
+    if new_y < player_y and not maze[row - 1][col][2]:  # Down
         while row < rows and not maze[row][col][0]:
             row += 1
         return player_x, displacement + 1 - row * cell_size
 
     return player_x, player_y
 
-
 def keyboard(key, x, y):
-    #Keyboard callback for player movement
-    global player_x, player_y
-    step = 2.0 / max(len(maze), len(maze[0]))
+    global player_x, player_y, step
+
+
+    if game_pause:
+        return
 
     if key == b'a':  # Move left
         new_x, new_y = player_x - step, player_y
@@ -304,33 +393,117 @@ def keyboard(key, x, y):
     glutPostRedisplay()
 
 
+
+# Global variables
+
+game_pause = False
+game_over = False
+
+
+def draw_button(x, y, width, height, color, shape):
+    glColor3f(*color)
+    if shape == "arrow":  # Restart button (Left Arrow)
+        draw_midpoint_line(x - width, y, x + width, y)
+        draw_midpoint_line(x - width, y, x, y + height)
+        draw_midpoint_line(x - width, y, x, y - height)
+    elif shape == "play":  # Play button (Triangle)
+        draw_midpoint_line(x - width, y - height, x - width, y + height)
+        draw_midpoint_line(x - width, y - height, x + width, y)
+        draw_midpoint_line(x - width, y + height, x + width, y)
+    elif shape == "pause":  # Pause button (Two lines)
+        draw_midpoint_line(x - width, y + height, x - width, y - height)
+        draw_midpoint_line(x + width, y + height, x + width, y - height)
+    elif shape == "cross":  # Exit button (Cross)
+        draw_midpoint_line(x - width, y + height, x + width, y - height)
+        draw_midpoint_line(x + width, y + height, x - width, y - height)
+
+
+def draw_buttons():
+    button_width = 0.05
+    button_height = 0.05
+    spacing = 0.15  # Spacing between buttons
+    start_x = -0.9
+    start_y = 0.8
+
+    # Restart button
+    draw_button(start_x, start_y, button_width, button_height, (0.0, 0.0, 1.0), "arrow")
+
+    # Play/Pause button
+    if game_pause:
+        draw_button(start_x, start_y - spacing, button_width, button_height, (0.0, 1.0, 0.0), "play")
+    else:
+        draw_button(start_x, start_y - spacing, button_width / 3, button_height, (0.0, 1.0, 0.0), "pause")
+
+    # Exit button
+    draw_button(start_x, start_y - 2 * spacing, button_width, button_height, (1.0, 0.0, 0.0), "cross")
+
+
+def mouse_click(button, state, x, y):
+    global game_pause, game_over, player_x, player_y, maze
+    if state == GLUT_DOWN:
+        # Convert mouse coordinates to OpenGL coordinates
+        opengl_x = (x / window_width) * 2 - 1
+        opengl_y = 1 - (y / window_height) * 2
+
+        # Check button boundaries
+        restart_bounds = (-0.95, -0.85, 0.75, 0.85)
+        play_pause_bounds = (-0.95, -0.85, 0.6, 0.7)
+        exit_bounds = (-0.95, -0.85, 0.45, 0.55)
+
+        if restart_bounds[0] < opengl_x < restart_bounds[1] and restart_bounds[2] < opengl_y < restart_bounds[3]:
+            # Restart the game
+            game_over = False
+            game_pause = False
+            player_x, player_y = -0.93333333, 0.93333333  # Reset player position
+            maze = generate_maze(rows, cols)  # Regenerate the maze
+            print("Game Restarted")
+
+        elif play_pause_bounds[0] < opengl_x < play_pause_bounds[1] and play_pause_bounds[2] < opengl_y < play_pause_bounds[3]:
+            # Toggle play/pause
+            game_pause = not game_pause
+            print("Game Paused" if game_pause else "Game Resumed")
+
+        elif exit_bounds[0] < opengl_x < exit_bounds[1] and exit_bounds[2] < opengl_y < exit_bounds[3]:
+            # Exit the game
+            print("Game Exited")
+            glutLeaveMainLoop()
+
+
 def display():
-    #OpenGL display callback function
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
-
     draw_maze()
 
     draw_player()
 
+    draw_buttons()
     glutSwapBuffers()
 
 
-def main():
-    global maze
-    rows, cols = 15, 15  # Maze dimensions
-    maze = generate_maze(rows, cols)
+# Window dimensions
+window_width = 750
+window_height = 750
 
-    glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-    glutInitWindowSize(window_width, window_height)
-    glutCreateWindow(b"Maze Dasher")
+maze = []  # To store the generated maze
+DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
 
-    glClearColor(0.0, 0.0, 0.0, 1.0)  # Black background
-    gluOrtho2D(-1.0, 1.0, -1.0, 1.0)
-    glutDisplayFunc(display)
-    glutKeyboardFunc(keyboard)
-    glutMainLoop()
+rows, cols = 15, 15  # Maze dimensions
+maze = generate_maze(rows, cols)
+step = 2.0 / max(len(maze), len(maze[0]))
 
-if __name__ == "__main__":
-    main()
+# Player variables
+player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
+player_size = 0.05  # Player's size
+displacement = 0.0666666666
+
+glutInit()
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+glutInitWindowSize(window_width, window_height)
+glutCreateWindow(b"Maze Dasher")
+
+glClearColor(0.1, 0.1, 0.1, 1.0)  # Gray background
+gluOrtho2D(-1.0, 1.0, -1.0, 1.0)
+glutDisplayFunc(display)
+glutKeyboardFunc(keyboard)
+glutMouseFunc(mouse_click)
+glutMainLoop()
