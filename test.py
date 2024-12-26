@@ -301,11 +301,11 @@ def draw_button(x, y, width, height, color, shape):
 
 
 def draw_buttons():
-    button_width = 0.05
-    button_height = 0.05
+    button_width = 0.045
+    button_height = 0.045
     spacing = 0.15  # Spacing between buttons
-    start_x = -0.9
-    start_y = 0.8
+    start_x = 0.93
+    start_y = 0.93
 
     # Restart button
     draw_button(start_x, start_y, button_width, button_height, (0.0, 0.0, 1.0), "arrow")
@@ -328,9 +328,9 @@ def mouse_click(button, state, x, y):
         opengl_y = 1 - (y / window_height) * 2
 
         # Check button boundaries
-        restart_bounds = (-0.95, -0.85, 0.75, 0.85)
-        play_pause_bounds = (-0.95, -0.85, 0.6, 0.7)
-        exit_bounds = (-0.95, -0.85, 0.45, 0.55)
+        restart_bounds = (0.88, 0.98, 0.88, 0.98)
+        play_pause_bounds = (0.88, 0.98, 0.73, 0.83)
+        exit_bounds = (0.88, 0.98, 0.58, 0.68)
 
         if restart_bounds[0] < opengl_x < restart_bounds[1] and restart_bounds[2] < opengl_y < restart_bounds[3]:
             # Restart the game
