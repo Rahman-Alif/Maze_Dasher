@@ -3,9 +3,11 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
+
 def denormalize(x, old_min, old_max, new_min, new_max):
     # Map range [-1, 1] to [0, 750]
     return ((x - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
+
 
 def draw_midpoint_line(x1, y1, x2, y2):
     # Map normalized to window coords
@@ -13,6 +15,7 @@ def draw_midpoint_line(x1, y1, x2, y2):
     y1 = int(denormalize(y1, -1, 1, -750, window_height))
     x2 = int(denormalize(x2, -1, 1, -750, window_width))
     y2 = int(denormalize(y2, -1, 1, -750, window_height))
+
 
     dx = x2 - x1
     dy = y2 - y1
@@ -29,6 +32,7 @@ def draw_midpoint_line(x1, y1, x2, y2):
 
     dx = x2 - x1
     dy = y2 - y1
+
     d = 2 * abs(dy) - abs(dx)
     if y1 < y2:
         y_step = 1
@@ -47,6 +51,8 @@ def draw_midpoint_line(x1, y1, x2, y2):
             d -= 2 * abs(dx)
         d += 2 * abs(dy)
     glEnd()
+
+
 
 def draw_midpoint_circle(cx, cy, radius):
     # Map normalized to window coords
@@ -113,7 +119,7 @@ def generate_maze(rows, cols):
         visited.append(row)
 
     def is_valid(x, y):
-        #Check if the cell (x, y) is within the bounds of the maze
+        # Check if the cell (x, y) is within the bounds of the maze
         return 0 <= x < rows and 0 <= y < cols
 
     def dfs_maze_create(x, y):
@@ -124,8 +130,7 @@ def generate_maze(rows, cols):
         for x_direct, y_direct in directions:
             neigh_x, neigh_y = x + x_direct, y + y_direct
             if is_valid(neigh_x, neigh_y) and not visited[neigh_x][neigh_y]:
-            # Remove wall between current cell and neighbor
-            
+
                 if x_direct == -1:  # Move up
                     maze[x][y][0] = False  # Remove top wall of current
                     maze[neigh_x][neigh_y][2] = False  # Remove bottom wall of neighbor
@@ -148,7 +153,6 @@ def generate_maze(rows, cols):
     # for cols in range(len(maze)):
     #     with open('maze_shape.txt', 'a') as file:
     #         file.write(str(maze[cols])+"\n")
-
 
     maze_level_1  = [[[True, False, False, True], [True, False, False, False], [True, True, False, False], [True, False, False, True], [True, False, True, False], [True, False, False, False], [True, True, False, False], [True, False, False, True], [True, False, False, False], [True, True, False, False], [True, False, False, True], [True, True, False, False], [True, False, False, True], [True, True, False, False], [True, True, True, True]],
     [[False, True, False, True], [False, True, False, True], [False, True, False, True], [False, False, True, True], [True, True, False, False], [False, False, True, True], [False, True, False, False], [False, True, False, True], [False, True, False, True], [False, False, True, True], [False, True, False, False], [False, False, True, True], [False, True, False, False], [False, False, True, True], [True, True, False, False]],
@@ -187,6 +191,7 @@ def generate_maze(rows, cols):
     # return maze
     return maze_level_1
 
+
 def draw_maze():
     rows = len(maze)
     cols = len(maze[0])
@@ -196,7 +201,7 @@ def draw_maze():
 
     for row in range(rows):
         for col in range(cols):
-            x =  col * cell_size -1
+            x = col * cell_size - 1
             y = 1 - row * cell_size
 
             # Draw walls if they exist
@@ -211,10 +216,10 @@ def draw_maze():
 
 
 def check_collision(new_x, new_y):
-    #Check if the player's new position collides with maze walls
+    # Check if the player's new position collides with maze walls
     rows, cols = len(maze), len(maze[0])
     cell_size = 2.0 / max(rows, cols)
-    
+
     # Calculate Player's current cell
     row = int((1 - new_y) // cell_size)
     col = int((new_x + 1) // cell_size)
@@ -223,31 +228,34 @@ def check_collision(new_x, new_y):
         return player_x, player_y
 
     # Check for walls
-    if new_x < player_x and not maze[row][col+1][3]:  # Left
+    if new_x < player_x and not maze[row][col + 1][3]:  # Left
         while col >= 0 and not maze[row][col][1]:
             col -= 1
-        return displacement -1 + (col + 1) * cell_size, player_y
+        return displacement - 1 + (col + 1) * cell_size, player_y
 
-    if new_x > player_x and not maze[row][col-1][1]:  # Right
+    if new_x > player_x and not maze[row][col - 1][1]:  # Right
         while col < cols and not maze[row][col][3]:
             col += 1
-        return -displacement -1 + col * cell_size, player_y
+        return -displacement - 1 + col * cell_size, player_y
 
-    if new_y > player_y and not maze[row+1][col][0]:  # Up
+    if new_y > player_y and not maze[row + 1][col][0]:  # Up
         while row >= 0 and not maze[row][col][2]:
             row -= 1
         return player_x, - displacement + 1 - (row + 1) * cell_size
 
-    if new_y < player_y and not maze[row-1][col][2]:  # Down
+    if new_y < player_y and not maze[row - 1][col][2]:  # Down
         while row < rows and not maze[row][col][0]:
             row += 1
         return player_x, displacement + 1 - row * cell_size
 
     return player_x, player_y
 
-
 def keyboard(key, x, y):
     global player_x, player_y, step
+
+    if game_pause:
+        return
+
 
     if key == b'a':  # Move left
         new_x, new_y = player_x - step, player_y
@@ -267,17 +275,114 @@ def keyboard(key, x, y):
     glutPostRedisplay()
 
 
+
+# Global variables
+
+game_pause = False
+game_over = False
+
+
+def draw_button(x, y, width, height, color, shape):
+    glColor3f(*color)
+    if shape == "arrow":  # Restart button (Left Arrow)
+        draw_midpoint_line(x - width, y, x + width, y)
+        draw_midpoint_line(x - width, y, x, y + height)
+        draw_midpoint_line(x - width, y, x, y - height)
+    elif shape == "play":  # Play button (Triangle)
+        draw_midpoint_line(x - width, y - height, x - width, y + height)
+        draw_midpoint_line(x - width, y - height, x + width, y)
+        draw_midpoint_line(x - width, y + height, x + width, y)
+    elif shape == "pause":  # Pause button (Two lines)
+        draw_midpoint_line(x - width, y + height, x - width, y - height)
+        draw_midpoint_line(x + width, y + height, x + width, y - height)
+    elif shape == "cross":  # Exit button (Cross)
+        draw_midpoint_line(x - width, y + height, x + width, y - height)
+        draw_midpoint_line(x + width, y + height, x - width, y - height)
+
+
+def draw_buttons():
+    button_width = 0.05
+    button_height = 0.05
+    spacing = 0.15  # Spacing between buttons
+    start_x = -0.9
+    start_y = 0.8
+
+    # Restart button
+    draw_button(start_x, start_y, button_width, button_height, (0.0, 0.0, 1.0), "arrow")
+
+    # Play/Pause button
+    if game_pause:
+        draw_button(start_x, start_y - spacing, button_width, button_height, (0.0, 1.0, 0.0), "play")
+    else:
+        draw_button(start_x, start_y - spacing, button_width / 3, button_height, (0.0, 1.0, 0.0), "pause")
+
+    # Exit button
+    draw_button(start_x, start_y - 2 * spacing, button_width, button_height, (1.0, 0.0, 0.0), "cross")
+
+
+def mouse_click(button, state, x, y):
+    global game_pause, game_over, player_x, player_y, maze
+    if state == GLUT_DOWN:
+        # Convert mouse coordinates to OpenGL coordinates
+        opengl_x = (x / window_width) * 2 - 1
+        opengl_y = 1 - (y / window_height) * 2
+
+        # Check button boundaries
+        restart_bounds = (-0.95, -0.85, 0.75, 0.85)
+        play_pause_bounds = (-0.95, -0.85, 0.6, 0.7)
+        exit_bounds = (-0.95, -0.85, 0.45, 0.55)
+
+        if restart_bounds[0] < opengl_x < restart_bounds[1] and restart_bounds[2] < opengl_y < restart_bounds[3]:
+            # Restart the game
+            game_over = False
+            game_pause = False
+            player_x, player_y = -0.93333333, 0.93333333  # Reset player position
+            maze = generate_maze(rows, cols)  # Regenerate the maze
+            print("Game Restarted")
+
+        elif play_pause_bounds[0] < opengl_x < play_pause_bounds[1] and play_pause_bounds[2] < opengl_y < play_pause_bounds[3]:
+            # Toggle play/pause
+            game_pause = not game_pause
+            print("Game Paused" if game_pause else "Game Resumed")
+
+        elif exit_bounds[0] < opengl_x < exit_bounds[1] and exit_bounds[2] < opengl_y < exit_bounds[3]:
+            # Exit the game
+            print("Game Exited")
+            glutLeaveMainLoop()
+
+
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     draw_maze()
     draw_player()
+
+    draw_buttons()
     glutSwapBuffers()
 
 
 # Window dimensions
 window_width = 750
 window_height = 750
+
+
+maze = []  # To store the generated maze
+DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+
+rows, cols = 15, 15  # Maze dimensions
+maze = generate_maze(rows, cols)
+step = 2.0 / max(len(maze), len(maze[0]))
+
+# Player variables
+player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
+player_size = 0.05  # Player's size
+displacement = 0.0666666666
+
+glutInit()
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+glutInitWindowSize(window_width, window_height)
+glutCreateWindow(b"Maze Dasher")
+
 
 maze = []  # To store the generated maze
 DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
@@ -296,9 +401,9 @@ glutInit()
 glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
 glutInitWindowSize(window_width, window_height)
 glutCreateWindow(b"Maze Dasher")
-
 glClearColor(0.1, 0.1, 0.1, 1.0)  # Gray background
 gluOrtho2D(-1.0, 1.0, -1.0, 1.0)
 glutDisplayFunc(display)
 glutKeyboardFunc(keyboard)
+glutMouseFunc(mouse_click)
 glutMainLoop()
