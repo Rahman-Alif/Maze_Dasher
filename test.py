@@ -3,12 +3,12 @@ import time
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import GLUT_BITMAP_HELVETICA_18
 
 
 def denormalize(x, old_min, old_max, new_min, new_max):
     # Map range [-1, 1] to [0, 750]
     return ((x - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
-
 
 def draw_midpoint_line(x1, y1, x2, y2):
     # Map normalized to window coords
@@ -53,8 +53,6 @@ def draw_midpoint_line(x1, y1, x2, y2):
         d += 2 * abs(dy)
     glEnd()
 
-
-
 def draw_midpoint_circle(cx, cy, radius):
     # Denormalize center and radius from normalized coordinates to window dimensions
     cx = denormalize(cx, -1, 1, 0, window_width)
@@ -86,6 +84,7 @@ def draw_midpoint_circle(cx, cy, radius):
     glEnd()
 
 
+
 def draw_player():
     x1 = player_x - player_size
     x2 = player_x + player_size
@@ -102,6 +101,135 @@ def draw_player():
 
     glColor3f(1.0, 1.0, 1.0)
 
+def draw_maze_and_coins():
+    rows = len(maze)
+    cols = len(maze[0])
+    cell_size = 2.0 / max(rows, cols)  # Normalize to OpenGL coordinates
+
+    glColor3f(1.0, 1.0, 1.0)  # White walls
+
+    for row in range(rows):
+        for col in range(cols):
+            x = col * cell_size - 1
+            y = 1 - row * cell_size
+
+            # Draw walls if they exist
+            if maze[row][col][0]:  # Top wall
+                draw_midpoint_line(x, y, x + cell_size, y)
+            if maze[row][col][1]:  # Right wall
+                draw_midpoint_line(x + cell_size, y, x + cell_size, y - cell_size)
+            if maze[row][col][2]:  # Bottom wall
+                draw_midpoint_line(x, y - cell_size, x + cell_size, y - cell_size)
+            if maze[row][col][3]:  # Left wall
+                draw_midpoint_line(x, y, x, y - cell_size)
+    coin_y, coin_x = maze_coins[coins_collected]
+    coin_x = coin_x * cell_size - 1 + cell_size/2
+    coin_y = 1 - coin_y * cell_size - cell_size/2
+
+    glColor3f(0.0, 1.0, 1.0)
+
+    draw_midpoint_circle(coin_x, coin_y, 0.05)
+    draw_midpoint_circle(coin_x, coin_y, 0.03)
+
+    glColor3f(1.0, 1.0, 1.0)
+
+def draw_button(x, y, width, height, color, shape):
+    glColor3f(*color)
+    if shape == "arrow":  # Restart button (Left Arrow)
+        draw_midpoint_line(x - width, y, x + width, y)
+        draw_midpoint_line(x - width, y, x, y + height)
+        draw_midpoint_line(x - width, y, x, y - height)
+    elif shape == "play":  # Play button (Triangle)
+        draw_midpoint_line(x - width, y - height, x - width, y + height)
+        draw_midpoint_line(x - width, y - height, x + width, y)
+        draw_midpoint_line(x - width, y + height, x + width, y)
+    elif shape == "pause":  # Pause button (Two lines)
+        draw_midpoint_line(x - width, y + height, x - width, y - height)
+        draw_midpoint_line(x + width, y + height, x + width, y - height)
+    elif shape == "cross":  # Exit button (Cross)
+        draw_midpoint_line(x - width, y + height, x + width, y - height)
+        draw_midpoint_line(x + width, y + height, x - width, y - height)
+
+def draw_buttons():
+    button_width = 0.045
+    button_height = 0.045
+    spacing = 0.15  # Spacing between buttons
+    start_x = 0.93
+    start_y = 0.93
+
+    # Restart button
+    draw_button(start_x, start_y, button_width, button_height, (0.0, 0.0, 1.0), "arrow")
+
+    # Play/Pause button
+    if game_pause:
+        draw_button(start_x, start_y - spacing, button_width, button_height, (0.0, 1.0, 0.0), "play")
+    else:
+        draw_button(start_x, start_y - spacing, button_width / 3, button_height, (0.0, 1.0, 0.0), "pause")
+
+    # Exit button
+    draw_button(start_x, start_y - 2 * spacing, button_width, button_height, (1.0, 0.0, 0.0), "cross")
+
+def draw_victory_screen():
+    glColor3f(0.0, 1.0, 1.0)  # Cyan text color
+    glRasterPos2f(-0.38, 0.2)  # Position for the first line
+    for char in "Congratulations! you have beaten the maze!":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(char))
+
+    glRasterPos2f(-0.3, -0.1)  # Position for the second line
+    steps_message = f"You took {movement_count} steps to complete it."
+    for char in steps_message:
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(char))
+
+
+
+def check_collision(new_x, new_y):
+    # Check if the player's new position collides with maze walls
+    rows, cols = len(maze), len(maze[0])
+    cell_size = 2.0 / max(rows, cols)
+
+    # Calculate Player's current cell
+    row = int((1 - new_y) // cell_size)
+    col = int((new_x + 1) // cell_size)
+
+    if row < 0 or row >= rows or col < 0 or col >= cols:
+        return player_x, player_y
+
+    # Check for walls
+    if new_x < player_x and not maze[row][col + 1][3]:  # Left
+        while col >= 0 and not maze[row][col][1]:
+            col -= 1
+        return displacement - 1 + (col + 1) * cell_size, player_y
+
+    if new_x > player_x and not maze[row][col - 1][1]:  # Right
+        while col < cols and not maze[row][col][3]:
+            col += 1
+        return -displacement - 1 + col * cell_size, player_y
+
+    if new_y > player_y and not maze[row + 1][col][0]:  # Up
+        while row >= 0 and not maze[row][col][2]:
+            row -= 1
+        return player_x, - displacement + 1 - (row + 1) * cell_size
+
+    if new_y < player_y and not maze[row - 1][col][2]:  # Down
+        while row < rows and not maze[row][col][0]:
+            row += 1
+        return player_x, displacement + 1 - row * cell_size
+
+    return player_x, player_y
+
+def move_player_smoothly(target_x, target_y):
+    global player_x, player_y
+
+    steps = 5  # Number of frames for smooth movement
+    dx = (target_x - player_x) / steps
+    dy = (target_y - player_y) / steps
+
+    for _ in range(steps):
+        player_x += dx
+        player_y += dy
+        glutPostRedisplay()  # Redraw the screen
+        glutMainLoopEvent()  # Ensure OpenGL processes all commands immediately
+        time.sleep(0.00001)  # Small delay to create the animation effect
 
 def generate_maze(rows, cols):
     # Initialize the maze with walls (True for wall, False for no wall)
@@ -191,122 +319,7 @@ def generate_maze(rows, cols):
 
 
     # return maze
-    return maze_level_1, 1
-
-
-def draw_maze_and_coins():
-    rows = len(maze)
-    cols = len(maze[0])
-    cell_size = 2.0 / max(rows, cols)  # Normalize to OpenGL coordinates
-
-    glColor3f(1.0, 1.0, 1.0)  # White walls
-
-    for row in range(rows):
-        for col in range(cols):
-            x = col * cell_size - 1
-            y = 1 - row * cell_size
-
-            # Draw walls if they exist
-            if maze[row][col][0]:  # Top wall
-                draw_midpoint_line(x, y, x + cell_size, y)
-            if maze[row][col][1]:  # Right wall
-                draw_midpoint_line(x + cell_size, y, x + cell_size, y - cell_size)
-            if maze[row][col][2]:  # Bottom wall
-                draw_midpoint_line(x, y - cell_size, x + cell_size, y - cell_size)
-            if maze[row][col][3]:  # Left wall
-                draw_midpoint_line(x, y, x, y - cell_size)
-    coin_y, coin_x = maze_coins[coins_collected]
-    coin_x = coin_x * cell_size - 1 + cell_size/2
-    coin_y = 1 - coin_y * cell_size - cell_size/2
-
-    glColor3f(0.0, 1.0, 1.0)
-
-    draw_midpoint_circle(coin_x, coin_y, 0.05)
-    draw_midpoint_circle(coin_x, coin_y, 0.03)
-
-    glColor3f(1.0, 1.0, 1.0)
-
-
-
-def check_collision(new_x, new_y):
-    # Check if the player's new position collides with maze walls
-    rows, cols = len(maze), len(maze[0])
-    cell_size = 2.0 / max(rows, cols)
-
-    # Calculate Player's current cell
-    row = int((1 - new_y) // cell_size)
-    col = int((new_x + 1) // cell_size)
-
-    if row < 0 or row >= rows or col < 0 or col >= cols:
-        return player_x, player_y
-
-    # Check for walls
-    if new_x < player_x and not maze[row][col + 1][3]:  # Left
-        while col >= 0 and not maze[row][col][1]:
-            col -= 1
-        return displacement - 1 + (col + 1) * cell_size, player_y
-
-    if new_x > player_x and not maze[row][col - 1][1]:  # Right
-        while col < cols and not maze[row][col][3]:
-            col += 1
-        return -displacement - 1 + col * cell_size, player_y
-
-    if new_y > player_y and not maze[row + 1][col][0]:  # Up
-        while row >= 0 and not maze[row][col][2]:
-            row -= 1
-        return player_x, - displacement + 1 - (row + 1) * cell_size
-
-    if new_y < player_y and not maze[row - 1][col][2]:  # Down
-        while row < rows and not maze[row][col][0]:
-            row += 1
-        return player_x, displacement + 1 - row * cell_size
-
-    return player_x, player_y
-
-def move_player_smoothly(target_x, target_y):
-    global player_x, player_y
-
-    steps = 5  # Number of frames for smooth movement
-    dx = (target_x - player_x) / steps
-    dy = (target_y - player_y) / steps
-
-    for _ in range(steps):
-        player_x += dx
-        player_y += dy
-        glutPostRedisplay()  # Redraw the screen
-        glutMainLoopEvent()  # Ensure OpenGL processes all commands immediately
-        time.sleep(0.00001)  # Small delay to create the animation effect
-
-def keyboard(key, x, y):
-    global player_x, player_y, step, teleport_flag
-
-    if key == b'a':  # Move left
-        new_x, new_y = player_x - step, player_y
-        target_x, target_y = check_collision(new_x, new_y)
-        move_player_smoothly(target_x, target_y)
-
-    elif key == b'd':  # Move right
-        new_x, new_y = player_x + step, player_y
-        target_x, target_y = check_collision(new_x, new_y)
-        move_player_smoothly(target_x, target_y)
-
-    elif key == b'w':  # Move up
-        new_x, new_y = player_x, player_y + step
-        target_x, target_y = check_collision(new_x, new_y)
-        move_player_smoothly(target_x, target_y)
-
-    elif key == b's':  # Move down
-        new_x, new_y = player_x, player_y - step
-        target_x, target_y = check_collision(new_x, new_y)
-        move_player_smoothly(target_x, target_y)
-
-    # Check if a coin is collected after moving
-    check_coin_collision()
-    if coins_collected == 3 and maze_number == 1 and teleport_flag == False:
-        teleport_flag= True
-        player_x = - 0.866666666 + 0.0666666
-        player_y = + 0.866666666 - 0.0666666
-    glutPostRedisplay()
+    return maze_level_2, 2
 
 def check_coin_collision():
     global player_x, player_y,coins_collected
@@ -323,48 +336,55 @@ def check_coin_collision():
         print("Total coins collected: ", coins_collected)
 
 
-def draw_button(x, y, width, height, color, shape):
-    glColor3f(*color)
-    if shape == "arrow":  # Restart button (Left Arrow)
-        draw_midpoint_line(x - width, y, x + width, y)
-        draw_midpoint_line(x - width, y, x, y + height)
-        draw_midpoint_line(x - width, y, x, y - height)
-    elif shape == "play":  # Play button (Triangle)
-        draw_midpoint_line(x - width, y - height, x - width, y + height)
-        draw_midpoint_line(x - width, y - height, x + width, y)
-        draw_midpoint_line(x - width, y + height, x + width, y)
-    elif shape == "pause":  # Pause button (Two lines)
-        draw_midpoint_line(x - width, y + height, x - width, y - height)
-        draw_midpoint_line(x + width, y + height, x + width, y - height)
-    elif shape == "cross":  # Exit button (Cross)
-        draw_midpoint_line(x - width, y + height, x + width, y - height)
-        draw_midpoint_line(x + width, y + height, x - width, y - height)
 
+def keyboard(key, x, y):
+    global player_x, player_y, step, teleport_flag, game_over, movement_count
 
-def draw_buttons():
-    button_width = 0.045
-    button_height = 0.045
-    spacing = 0.15  # Spacing between buttons
-    start_x = 0.93
-    start_y = 0.93
+    if game_over:
+        return  # Disable movement if game is over
 
-    # Restart button
-    draw_button(start_x, start_y, button_width, button_height, (0.0, 0.0, 1.0), "arrow")
-
-    # Play/Pause button
     if game_pause:
-        draw_button(start_x, start_y - spacing, button_width, button_height, (0.0, 1.0, 0.0), "play")
-    else:
-        draw_button(start_x, start_y - spacing, button_width / 3, button_height, (0.0, 1.0, 0.0), "pause")
+        return # Disable movement if game is paused
 
-    # Exit button
-    draw_button(start_x, start_y - 2 * spacing, button_width, button_height, (1.0, 0.0, 0.0), "cross")
+    if key == b'a':  # Move left
+        movement_count+=1
+        new_x, new_y = player_x - step, player_y
+        target_x, target_y = check_collision(new_x, new_y)
+        move_player_smoothly(target_x, target_y)
 
+    elif key == b'd':  # Move right
+        movement_count+=1
+        new_x, new_y = player_x + step, player_y
+        target_x, target_y = check_collision(new_x, new_y)
+        move_player_smoothly(target_x, target_y)
+
+    elif key == b'w':  # Move up
+        movement_count+=1
+        new_x, new_y = player_x, player_y + step
+        target_x, target_y = check_collision(new_x, new_y)
+        move_player_smoothly(target_x, target_y)
+
+    elif key == b's':  # Move down
+        movement_count+=1
+        new_x, new_y = player_x, player_y - step
+        target_x, target_y = check_collision(new_x, new_y)
+        move_player_smoothly(target_x, target_y)
+
+    # Check if a coin is collected after moving
+    check_coin_collision()
+    if coins_collected == 3 and maze_number == 1 and not teleport_flag:
+        teleport_flag = True
+        player_x = -0.866666666 + 0.0666666
+        player_y = +0.866666666 - 0.0666666
+
+    if coins_collected == 6:
+        game_over = True  # Trigger victory screen
+    glutPostRedisplay()
 
 def mouse_click(button, state, x, y):
-    global game_pause, game_over, player_x, player_y, maze, teleport_flag, coins_collected
+    global game_pause, game_over, player_x, player_y, maze, teleport_flag, coins_collected, movement_count
     if state == GLUT_DOWN:
-        # mouse coordinates to OpenGL coordinates
+        # Mouse coordinates to OpenGL coordinates
         opengl_x = (x / window_width) * 2 - 1
         opengl_y = 1 - (y / window_height) * 2
 
@@ -378,55 +398,63 @@ def mouse_click(button, state, x, y):
             game_over = False
             game_pause = False
             player_x, player_y = -0.93333333, 0.93333333  # Reset player position
-            maze = generate_maze(rows, cols)  # Regenerate the maze
-            teleport_flag= False
+            teleport_flag = False
             coins_collected = 0
+            movement_count=0
             print("Game Restarted")
 
         elif play_pause[0] < opengl_x < play_pause[1] and play_pause[2] < opengl_y < play_pause[3]:
-            # Toggle play/pause
-            game_pause = not game_pause
-            print("Game Paused" if game_pause else "Game Resumed")
+            if not game_over:
+                # Toggle play/pause
+                game_pause = not game_pause
+                print("Game Paused" if game_pause else "Game Resumed")
 
         elif exit[0] < opengl_x < exit[1] and exit[2] < opengl_y < exit[3]:
             # Exit the game
             print("Game Exited")
             glutLeaveMainLoop()
 
-
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
-    draw_maze_and_coins()
-    draw_player()
+
+    if game_over:
+        draw_victory_screen()
+    else:
+        draw_maze_and_coins()
+        draw_player()
+    
     draw_buttons()
     glutSwapBuffers()
 
-# Window dimensions
+
+# Window dimensions and Maze configuration
 window_width = 750
 window_height = 750
-
 maze = []  # To store the generated maze
 DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-
 rows, cols = 15, 15  # Maze dimensions
 maze,maze_number = generate_maze(rows, cols)
-
 if maze_number==1:
     maze_coins = [(6,0), (8,9),  (13,0),  (5,7),  (2,7), (13,13)]
 else:
     maze_coins = [(7,4), (3,14), (12,13), (13,1), (3,7), (11,6) ]
 coins_collected = 0
 
-step = 2.0 / max(len(maze), len(maze[0]))
 
-game_pause = False
-game_over = False
-teleport_flag= False
 # Player variables
 player_x, player_y = -0.93333333, 0.93333333 # Initial position of the player
 player_size = 0.05  # Player's size
 displacement= 0.0666666666
+movement_count=0
+step = 2.0 / max(len(maze), len(maze[0]))
+
+
+# Flag
+game_pause = False
+game_over = False
+teleport_flag= False
+
 
 glutInit()
 glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
