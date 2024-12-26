@@ -374,24 +374,6 @@ maze = generate_maze(rows, cols)
 step = 2.0 / max(len(maze), len(maze[0]))
 
 # Player variables
-player_x, player_y = -0.93333333, 0.93333333  # Initial position of the player
-player_size = 0.05  # Player's size
-displacement = 0.0666666666
-
-glutInit()
-glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-glutInitWindowSize(window_width, window_height)
-glutCreateWindow(b"Maze Dasher")
-
-
-maze = []  # To store the generated maze
-DIRECTIONS = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-
-rows, cols = 15, 15  # Maze dimensions
-maze = generate_maze(rows, cols)
-step = 2.0 / max(len(maze), len(maze[0]))
-
-# Player variables
 player_x, player_y = -0.93333333, 0.93333333 # Initial position of the player
 player_size = 0.05  # Player's size
 displacement= 0.0666666666
